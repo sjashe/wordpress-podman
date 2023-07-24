@@ -23,7 +23,7 @@ podman volume create "${PREFIX}-mariadb"
 podman volume create "${PREFIX}-nginx-conf"
 
 # create resources (optionally publish on port 80)...
-podman pod create --name "${PREFIX}" #--publish 80:80/tcp
+podman pod create --name "${PREFIX}" --publish 80:80/tcp
 # create a secret to store mysql password...
 printf "%s" "${DB_PASSWORD}" | podman secret create "${PREFIX}-mysql-root" -
 # generate basic nginx config...
@@ -47,7 +47,7 @@ echo 'server {
   }
 }' > $(podman volume inspect -f '{{ .Mountpoint }}' "${PREFIX}-nginx-conf")/blog.conf
 # spawn mariadb instance...
-podman run --pod ${PREFIX} --rm -d --label io.containers.autoupdate=registry \
+podman run --pod ${PREFIX}  -d --label io.containers.autoupdate=registry \
   --name "${PREFIX}-db" \
   --secret "${PREFIX}-mysql-root" \
   --env MARIADB_ROOT_PASSWORD_FILE="/run/secrets/${PREFIX}-mysql-root" \
@@ -55,7 +55,7 @@ podman run --pod ${PREFIX} --rm -d --label io.containers.autoupdate=registry \
   --volume "${PREFIX}-mariadb:/var/lib/mysql" \
   docker.io/library/mariadb:latest
 # spawn fpm instance to execute requests...
-podman run --pod ${PREFIX} --rm -d --label io.containers.autoupdate=registry \
+podman run --pod ${PREFIX}  -d --label io.containers.autoupdate=registry \
   --name "${PREFIX}-fpm" \
   --secret "${PREFIX}-mysql-root" \
   --env WORDPRESS_DB_HOST=127.0.0.1 \
@@ -65,7 +65,7 @@ podman run --pod ${PREFIX} --rm -d --label io.containers.autoupdate=registry \
   --volume "${PREFIX}-var-www-html:/var/www/html" \
   docker.io/library/wordpress:fpm-alpine
 # spawn nginx instance to serve requests...
-podman run --pod ${PREFIX} --rm -d --label io.containers.autoupdate=registry \
+podman run --pod ${PREFIX}  -d --label io.containers.autoupdate=registry \
   --name "${PREFIX}-nginx" \
   --volume "${PREFIX}-nginx-conf:/etc/nginx/conf.d" \
   --volume "${PREFIX}-var-www-html:/var/www/html" \
